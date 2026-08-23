@@ -5,7 +5,7 @@ import csv
 import sys
 
 from audience_miner.core import score_candidate
-from audience_miner.discovery import discover_handles
+from audience_miner.discovery import discover_handles, discover_hashtag_authors
 from audience_miner.report import write_html_report
 
 
@@ -13,18 +13,20 @@ def main() -> int:
     p = argparse.ArgumentParser(description='Discover and rank note creators by public activity and topic fit.')
     p.add_argument('--keywords', required=True, help='Comma-separated scoring keywords')
     p.add_argument('--query', action='append', default=[], help='Public note creator-search query; repeatable')
+    p.add_argument('--tag', action='append', default=[], help='Public note hashtag used to discover article authors; repeatable')
     p.add_argument('--candidate', action='append', default=[], help='Explicit note handle/profile URL; repeatable')
     p.add_argument('--per-query', type=int, default=10, help='Requested public search results per query (1-50)')
-    p.add_argument('--max-candidates', type=int, default=50, help='Hard cap on discovered candidates (1-100)')
+    p.add_argument('--max-candidates', type=int, default=50, help='Hard cap per discovery provider (1-100)')
     p.add_argument('--out', default='candidates.csv', help='CSV output path')
     p.add_argument('--html-out', default='candidates.html', help='Mobile-friendly human review report path')
     args = p.parse_args()
 
-    if not args.query and not args.candidate:
-        p.error('provide at least one --query or --candidate')
+    if not args.query and not args.tag and not args.candidate:
+        p.error('provide at least one --query, --tag, or --candidate')
 
     keywords = [x.strip() for x in args.keywords.split(',') if x.strip()]
     candidates = list(args.candidate)
+
     if args.query:
         try:
             candidates.extend(
@@ -35,7 +37,18 @@ def main() -> int:
                 )
             )
         except Exception as exc:
-            print(f'WARN public discovery failed: {exc}', file=sys.stderr)
+            print(f'WARN public creator discovery failed: {exc}', file=sys.stderr)
+
+    if args.tag:
+        try:
+            candidates.extend(
+                discover_hashtag_authors(
+                    args.tag,
+                    max_candidates=args.max_candidates,
+                )
+            )
+        except Exception as exc:
+            print(f'WARN public hashtag discovery failed: {exc}', file=sys.stderr)
 
     deduped: list[str] = []
     seen: set[str] = set()
