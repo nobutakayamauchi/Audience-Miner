@@ -6,6 +6,7 @@ import sys
 
 from audience_miner.core import score_candidate
 from audience_miner.discovery import discover_handles
+from audience_miner.report import write_html_report
 
 
 def main() -> int:
@@ -15,7 +16,8 @@ def main() -> int:
     p.add_argument('--candidate', action='append', default=[], help='Explicit note handle/profile URL; repeatable')
     p.add_argument('--per-query', type=int, default=10, help='Requested public search results per query (1-50)')
     p.add_argument('--max-candidates', type=int, default=50, help='Hard cap on discovered candidates (1-100)')
-    p.add_argument('--out', default='candidates.csv')
+    p.add_argument('--out', default='candidates.csv', help='CSV output path')
+    p.add_argument('--html-out', default='candidates.html', help='Mobile-friendly human review report path')
     args = p.parse_args()
 
     if not args.query and not args.candidate:
@@ -62,12 +64,17 @@ def main() -> int:
         for row in rows:
             w.writerow({name: getattr(row, name) for name in fields})
 
+    if args.html_out:
+        write_html_report(rows, args.html_out)
+
     for row in rows:
         print(
             f'{row.total_score:6.2f} {row.handle:24} '
             f'active_days30={row.active_days_30d:2d} posts30={row.activity_30d:2d}'
         )
     print(f'Wrote {len(rows)} candidates to {args.out}')
+    if args.html_out:
+        print(f'Wrote review report to {args.html_out}')
     return 0
 
 
