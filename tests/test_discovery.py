@@ -11,6 +11,7 @@ HTML = '''
 <a href="/search">search</a>
 <a href="/alpha_user">Alpha</a>
 <a href="https://note.com/beta-user">Beta</a>
+<a href="/tracked_user?ref=search">Tracked</a>
 <a href="/alpha_user">Alpha duplicate</a>
 <a href="/gamma/n/n123">article not profile</a>
 <a href="/hashtag/AI">tag path not profile</a>
@@ -20,7 +21,7 @@ HTML = '''
 
 
 def test_parse_creator_search_html_only_top_level_profiles():
-    assert parse_creator_search_html(HTML) == ['alpha_user', 'beta-user']
+    assert parse_creator_search_html(HTML) == ['alpha_user', 'beta-user', 'tracked_user']
 
 
 def test_discovery_dedupes_across_queries_and_caps():
