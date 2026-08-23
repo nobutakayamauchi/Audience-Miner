@@ -1,6 +1,10 @@
 from unittest.mock import patch
 
-from audience_miner.discovery import discover_handles, parse_creator_search_html
+from audience_miner.discovery import (
+    discover_handles,
+    discover_hashtag_authors,
+    parse_creator_search_html,
+)
 
 HTML = '''
 <html><body>
@@ -9,6 +13,7 @@ HTML = '''
 <a href="https://note.com/beta-user">Beta</a>
 <a href="/alpha_user">Alpha duplicate</a>
 <a href="/gamma/n/n123">article not profile</a>
+<a href="/hashtag/AI">tag path not profile</a>
 <a href="https://example.com/outside">outside</a>
 </body></html>
 '''
@@ -29,3 +34,13 @@ def test_discovery_dedupes_across_queries_and_caps():
 
     with patch('audience_miner.discovery.fetch_creator_search', side_effect=fake_fetch):
         assert discover_handles(['AI', 'GPTs'], max_candidates=2) == ['alpha', 'beta']
+
+
+def test_hashtag_discovery_dedupes_authors():
+    pages = {
+        'AI': '<a href="/author_a"><a href="/author_b/n/n123"><a href="/author_b">',
+        'AI副業': '<a href="/author_b"><a href="/author_c">',
+    }
+
+    with patch('audience_miner.discovery.fetch_hashtag_page', side_effect=lambda tag: pages[tag]):
+        assert discover_hashtag_authors(['#AI', 'AI副業']) == ['author_a', 'author_b', 'author_c']
