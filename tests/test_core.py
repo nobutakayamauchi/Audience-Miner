@@ -27,7 +27,7 @@ def test_parse_feed():
     assert items[0][1] == datetime(2026, 8, 23, 1, 0, tzinfo=timezone.utc)
 
 
-def test_score_uses_distinct_public_active_days():
+def test_score_uses_distinct_public_active_days_and_recency():
     with patch('audience_miner.core.fetch_rss', return_value=FEED):
         row = score_candidate(
             'example',
@@ -36,5 +36,7 @@ def test_score_uses_distinct_public_active_days():
         )
     assert row.activity_30d == 2
     assert row.active_days_30d == 2
+    assert row.last_observed_post_at == '2026-08-23T01:00:00+00:00'
+    assert row.days_since_last_post == 0
     assert row.topic_score == 100.0
     assert row.evidence_basis == 'public_rss_observed_lower_bound'
