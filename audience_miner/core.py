@@ -14,6 +14,8 @@ class CandidateScore:
     profile_url: str
     activity_30d: int
     active_days_30d: int
+    last_observed_post_at: str
+    days_since_last_post: int | None
     activity_score: float
     topic_score: float
     total_score: float
@@ -69,10 +71,17 @@ def score_candidate(value: str, keywords: list[str], now: datetime | None = None
     now = now or datetime.now(timezone.utc)
     items = parse_feed(fetch_rss(handle))
 
+    dated_items = [(title, dt.astimezone(timezone.utc)) for title, dt in items if dt]
     cutoff = now - timedelta(days=30)
-    recent = [(title, dt) for title, dt in items if dt and dt.astimezone(timezone.utc) >= cutoff]
+    recent = [(title, dt) for title, dt in dated_items if dt >= cutoff]
     activity_30d = len(recent)
-    active_days_30d = len({dt.astimezone(timezone.utc).date() for _, dt in recent if dt})
+    active_days_30d = len({dt.date() for _, dt in recent})
+
+    last_dt = max((dt for _, dt in dated_items), default=None)
+    last_observed_post_at = last_dt.isoformat() if last_dt else ''
+    days_since_last_post = None
+    if last_dt:
+        days_since_last_post = max(0, int((now - last_dt).total_seconds() // 86400))
 
     # Product heuristic: 20 distinct observed publishing days in 30 days saturates the activity score.
     # RSS can be truncated, so these counts are evidence lower bounds, not private login history.
@@ -90,6 +99,8 @@ def score_candidate(value: str, keywords: list[str], now: datetime | None = None
         profile_url=profile_url,
         activity_30d=activity_30d,
         active_days_30d=active_days_30d,
+        last_observed_post_at=last_observed_post_at,
+        days_since_last_post=days_since_last_post,
         activity_score=round(activity_score, 2),
         topic_score=round(topic_score, 2),
         total_score=total_score,
