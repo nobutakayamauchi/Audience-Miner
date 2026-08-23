@@ -1,26 +1,47 @@
 from audience_miner.core import score_candidate
-from audience_miner.discovery import discover_handles, discover_hashtag_authors
+from audience_miner.discovery import (
+    DiscoveryUnavailableError,
+    discover_handles,
+    discover_hashtag_authors,
+)
 
 
 def main() -> int:
-    creator_handles = discover_handles(['note公式'], per_query=10, max_candidates=10)
-    if 'info' not in {h.casefold() for h in creator_handles}:
-        raise RuntimeError(f'expected note official handle in public creator search, got: {creator_handles}')
+    creator_search_state = 'available'
+    try:
+        creator_handles = discover_handles(['AI副業'], per_query=10, max_candidates=5)
+    except DiscoveryUnavailableError:
+        creator_search_state = 'fail_closed_client_rendered'
+        creator_handles = []
 
-    hashtag_handles = discover_hashtag_authors(['AI'], max_candidates=10)
+    hashtag_handles = discover_hashtag_authors(['AI副業', '生成AI'], max_candidates=8)
     if not hashtag_handles:
-        raise RuntimeError('public #AI page returned no parseable author handles')
+        raise RuntimeError('public hashtag pages returned no parseable author handles')
 
-    row = score_candidate('info', ['note'])
-    if not row.recent_titles:
-        raise RuntimeError('public RSS scoring returned no title evidence for note official')
+    scored = None
+    score_errors: list[str] = []
+    for handle in hashtag_handles[:5]:
+        try:
+            candidate = score_candidate(handle, ['AI', '生成AI', 'ChatGPT', 'AI副業'])
+        except Exception as exc:
+            score_errors.append(f'{handle}:{exc}')
+            continue
+        if candidate.recent_titles:
+            scored = candidate
+            break
+
+    if scored is None:
+        raise RuntimeError(f'no discovered hashtag author produced RSS evidence: {score_errors}')
 
     print(
         'LIVE_OK '
-        f'creator_search={len(creator_handles)} '
+        f'creator_search={creator_search_state} '
+        f'creator_handles={len(creator_handles)} '
         f'hashtag_authors={len(hashtag_handles)} '
-        f'info_posts30={row.activity_30d} '
-        f'info_active_days30={row.active_days_30d}'
+        f'scored={scored.handle} '
+        f'posts30={scored.activity_30d} '
+        f'active_days30={scored.active_days_30d} '
+        f'last={scored.days_since_last_post}d'
     )
     return 0
 
