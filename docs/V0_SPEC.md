@@ -1,6 +1,6 @@
 # Audience Miner V0 — Frozen Scope
 
-Status: `V0 BUILD CLOSED / REALITY GATE`
+Status: `V0 REALITY-ADAPTED / BUILD CLOSED AFTER FIX`
 
 ## Raison d'être
 
@@ -12,7 +12,7 @@ Audience Miner does **not** know private login history.
 
 V0 may observe only public evidence:
 
-- creator-search results exposed by note's public search UI
+- creator profile links actually exposed in fetched public HTML
 - authors exposed on public hashtag pages
 - public creator RSS publication timestamps and titles
 
@@ -30,8 +30,8 @@ Therefore:
 At least one of:
 
 - explicit note creator handle/profile URL
-- creator-search query
-- public hashtag
+- public hashtag (V0 primary discovery path)
+- creator-search query (best-effort auxiliary provider; fail-closed when result bodies are client-rendered)
 
 Plus scoring keywords.
 
@@ -52,13 +52,17 @@ Plus scoring keywords.
 
 ## Discovery providers
 
-### NOTE_PUBLIC_CREATOR_SEARCH
-
-Uses the public `note.com/search?context=user` user-facing search surface.
-
-### NOTE_PUBLIC_HASHTAG
+### NOTE_PUBLIC_HASHTAG — V0 PRIMARY / REALITY PROVEN
 
 Uses public `note.com/hashtag/<tag>` pages and extracts top-level creator profile links exposed in the returned page.
+
+The first bounded Reality run on 2026-08-23 produced six scored real candidates through this path and successfully stored CSV/HTML evidence.
+
+### NOTE_PUBLIC_CREATOR_SEARCH — AUXILIARY / FAIL-CLOSED
+
+Uses the public `note.com/search?context=user` user-facing search surface only when creator profile links are actually exposed in fetched HTML.
+
+Reality finding on 2026-08-23: the fetched unauthenticated search HTML exposed navigation (`/trend`) but not the client-rendered creator result body. V0 therefore filters reserved navigation routes and raises `DiscoveryUnavailableError` when no real profile links remain. It must never fabricate a successful search result from navigation links.
 
 Both providers are replaceable adapters. HTML layout is not treated as a stable API contract.
 
@@ -89,7 +93,7 @@ Recency is exposed separately for human judgment in V0 rather than silently pret
 3. No anti-bot, CAPTCHA, rate-limit, or authentication bypass.
 4. No bulk auto-follow, auto-like, auto-DM, or follow-back automation in core.
 5. No hidden unofficial API dependency when a public user-facing surface is sufficient.
-6. Discovery adapter failure must not silently fabricate candidates.
+6. Discovery adapter failure must fail closed rather than silently fabricate candidates.
 7. Platform actions remain human-confirmed and replaceable.
 8. Audience signal is not Affiliate/Seller authority in Sales Distribution Network.
 9. A local `フォロー済み` mark records the operator's review state only; it is not proof of remote note state.
@@ -97,7 +101,8 @@ Recency is exposed separately for human judgment in V0 rather than silently pret
 ## DA findings
 
 - Creator search alone misses people whose profile does not describe the niche.
-- Hashtag author discovery adds content-based coverage without private access.
+- Current unauthenticated creator-search result bodies can be client-rendered and absent from fetched HTML.
+- Hashtag author discovery provides content-based coverage and is Reality-proven without private access.
 - RSS can undercount active days due to feed truncation.
 - A 30-day count alone can hide that someone stopped publishing recently, so V0 exposes posting recency explicitly.
 - Search/tag HTML can change without notice.
@@ -108,11 +113,13 @@ Recency is exposed separately for human judgment in V0 rather than silently pret
 
 V0 is acceptable if:
 
+- hashtag discovery remains the primary V0 discovery path while creator search is unavailable
+- creator search fails closed when its result body is not observable
 - discovery sources stay public and bounded
 - duplicate handles are removed
 - all activity values are labeled public observed lower bounds
 - parsers fail closed
-- live smoke proves public creator search + hashtag author extraction + RSS scoring on the exact PR head
+- live smoke proves hashtag author extraction + RSS scoring on the exact PR head and reports creator-search availability state
 - bounded Dogfood produces real candidates and an inspectable CSV/HTML artifact
 - ranking usefulness is judged by human Dogfood before adding richer scoring or action automation
 
@@ -123,7 +130,7 @@ Code GREEN is not product PASS.
 Required evidence:
 
 1. unit tests pass on exact PR head
-2. live public smoke passes on exact PR head
-3. bounded real niche run produces at least 3 scored candidates and stores its CSV/HTML evidence
+2. live public smoke passes on exact PR head, including explicit creator-search availability/fail-closed state
+3. bounded real niche hashtag run produces at least 3 scored candidates and stores its CSV/HTML evidence
 4. human review confirms useful prospects appear near the top often enough to justify further work
 5. only then consider V0 merge / V1 expansion
