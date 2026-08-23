@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Bounded note audience discovery and scoring"
 requires-python = ">=3.11"
 
+[project.scripts]
+audience-miner = "audience_miner.cli:main"
+
 [project.optional-dependencies]
 test = ["pytest>=8"]
 
