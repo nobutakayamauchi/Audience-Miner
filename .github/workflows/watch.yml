@@ -1,0 +1,32 @@
+name: Watch note providers
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/watch.yml'
+      - 'scripts/live_smoke.py'
+      - 'audience_miner/discovery.py'
+      - 'audience_miner/core.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audience-miner-provider-watch
+  cancel-in-progress: true
+
+jobs:
+  live-provider-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - name: Verify bounded public provider chain
+        run: python scripts/live_smoke.py
