@@ -12,7 +12,12 @@ _RESERVED_TOP_LEVEL = {
     '', 'search', 'login', 'signup', 'register', 'terms', 'help', 'premium',
     'pro', 'about', 'pricing', 'hashtag', 'magazines', 'membership', 'memberships',
     'notifications', 'settings', 'account', 'explore', 'ranking', 'topics', 'categories',
+    'trend',
 }
+
+
+class DiscoveryUnavailableError(RuntimeError):
+    pass
 
 
 class _ProfileLinkParser(HTMLParser):
@@ -35,8 +40,7 @@ def _profile_handle_from_href(href: str) -> str | None:
     parsed = urlparse(href)
     if parsed.netloc and parsed.netloc not in {'note.com', 'www.note.com'}:
         return None
-    path = parsed.path
-    parts = [part for part in path.split('/') if part]
+    parts = [part for part in parsed.path.split('/') if part]
     if len(parts) != 1:
         return None
     handle = parts[0]
@@ -106,6 +110,11 @@ def discover_handles(
         html = fetch_creator_search(query, size=per_query)
         if _append_unique(ordered, seen, parse_public_profile_links(html), limit):
             break
+    if clean_queries and not ordered:
+        raise DiscoveryUnavailableError(
+            'public creator-search HTML exposed no creator profile links; '
+            'the current note search result body appears client-rendered'
+        )
     return ordered
 
 
@@ -118,4 +127,6 @@ def discover_hashtag_authors(tags: list[str], *, max_candidates: int = 50) -> li
         html = fetch_hashtag_page(tag)
         if _append_unique(ordered, seen, parse_public_profile_links(html), limit):
             break
+    if clean_tags and not ordered:
+        raise DiscoveryUnavailableError('public hashtag HTML exposed no creator profile links')
     return ordered
