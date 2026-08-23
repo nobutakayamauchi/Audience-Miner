@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
+import pytest
+
 from audience_miner.discovery import (
+    DiscoveryUnavailableError,
     discover_handles,
     discover_hashtag_authors,
     parse_creator_search_html,
@@ -9,6 +12,7 @@ from audience_miner.discovery import (
 HTML = '''
 <html><body>
 <a href="/search">search</a>
+<a href="/trend">trend nav</a>
 <a href="/alpha_user">Alpha</a>
 <a href="https://note.com/beta-user">Beta</a>
 <a href="/tracked_user?ref=search">Tracked</a>
@@ -35,6 +39,12 @@ def test_discovery_dedupes_across_queries_and_caps():
 
     with patch('audience_miner.discovery.fetch_creator_search', side_effect=fake_fetch):
         assert discover_handles(['AI', 'GPTs'], max_candidates=2) == ['alpha', 'beta']
+
+
+def test_creator_search_fails_closed_when_only_navigation_links_are_visible():
+    with patch('audience_miner.discovery.fetch_creator_search', return_value='<a href="/trend">'):
+        with pytest.raises(DiscoveryUnavailableError):
+            discover_handles(['AI副業'])
 
 
 def test_hashtag_discovery_dedupes_authors():
