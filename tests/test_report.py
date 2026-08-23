@@ -2,7 +2,7 @@ from audience_miner.core import CandidateScore
 from audience_miner.report import write_html_report
 
 
-def test_report_contains_safe_profile_link(tmp_path):
+def test_report_contains_safe_profile_link_and_review_controls(tmp_path):
     row = CandidateScore(
         handle='example',
         profile_url='https://note.com/example',
@@ -19,4 +19,8 @@ def test_report_contains_safe_profile_link(tmp_path):
     text = target.read_text(encoding='utf-8')
     assert 'https://note.com/example' in text
     assert '&lt;unsafe&gt; AI' in text
-    assert 'Open note profile' in text
+    assert 'noteプロフィールを開く' in text
+    assert 'data-handle="example"' in text
+    assert 'audience-miner-status:' in text
+    assert 'フォロー済み' in text
+    assert '除外' in text
