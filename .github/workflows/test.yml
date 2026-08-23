@@ -45,9 +45,9 @@ jobs:
         run: |
           python -m audience_miner.cli \
             --keywords "AI,生成AI,ChatGPT,GPTs,AI副業,note副業" \
-            --query "AI副業" \
             --tag "AI副業" \
             --tag "生成AI" \
+            --tag "ChatGPT" \
             --max-candidates 6 \
             --out candidates.csv \
             --html-out candidates.html
