@@ -26,3 +26,34 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -e .
       - run: python scripts/live_smoke.py
+
+  dogfood:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - name: Run bounded AI/note niche discovery
+        run: |
+          python -m audience_miner.cli \
+            --keywords "AI,生成AI,ChatGPT,GPTs,AI副業,note副業" \
+            --query "AI副業" \
+            --tag "AI副業" \
+            --tag "生成AI" \
+            --max-candidates 6 \
+            --out candidates.csv \
+            --html-out candidates.html
+          rows=$(($(wc -l < candidates.csv) - 1))
+          echo "DOGFOOD_ROWS=$rows"
+          test "$rows" -ge 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audience-miner-dogfood
+          path: |
+            candidates.csv
+            candidates.html
+          if-no-files-found: error
