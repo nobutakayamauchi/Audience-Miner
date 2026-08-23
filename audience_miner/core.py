@@ -17,20 +17,25 @@ class CandidateScore:
     activity_score: float
     topic_score: float
     total_score: float
+    evidence_basis: str
     recent_titles: str
 
 
 def normalize_handle(value: str) -> str:
     value = value.strip().rstrip('/')
     m = re.search(r"note\.com/([^/?#]+)", value)
-    if m:
-        return m.group(1)
-    return value.lstrip('@')
+    handle = m.group(1) if m else value.lstrip('@')
+    if not handle or not all(ch.isalnum() or ch in {'_', '-'} for ch in handle):
+        raise ValueError(f'invalid note handle: {value!r}')
+    return handle
 
 
 def fetch_rss(handle: str, timeout: int = 10) -> bytes:
     url = f"https://note.com/{handle}/rss"
-    req = urllib.request.Request(url, headers={"User-Agent": "AudienceMiner/0.1 (+human-reviewed research tool)"})
+    req = urllib.request.Request(
+        url,
+        headers={'User-Agent': 'AudienceMiner/0.1 (+human-reviewed public research tool)'},
+    )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 
@@ -60,13 +65,17 @@ def parse_feed(xml_bytes: bytes) -> list[tuple[str, datetime | None]]:
 
 def score_candidate(value: str, keywords: list[str], now: datetime | None = None) -> CandidateScore:
     handle = normalize_handle(value)
-    profile_url = f"https://note.com/{handle}"
+    profile_url = f'https://note.com/{handle}'
     now = now or datetime.now(timezone.utc)
     items = parse_feed(fetch_rss(handle))
+
     cutoff = now - timedelta(days=30)
     recent = [(title, dt) for title, dt in items if dt and dt.astimezone(timezone.utc) >= cutoff]
     activity_30d = len(recent)
     active_days_30d = len({dt.astimezone(timezone.utc).date() for _, dt in recent if dt})
+
+    # Product heuristic: 20 distinct observed publishing days in 30 days saturates the activity score.
+    # RSS can be truncated, so these counts are evidence lower bounds, not private login history.
     activity_score = min(100.0, (active_days_30d / 20.0) * 100.0)
 
     normalized_keywords = [k.casefold().strip() for k in keywords if k.strip()]
@@ -74,5 +83,16 @@ def score_candidate(value: str, keywords: list[str], now: datetime | None = None
     haystack = ' '.join(titles).casefold()
     matched = sum(1 for k in normalized_keywords if k in haystack)
     topic_score = 0.0 if not normalized_keywords else (matched / len(normalized_keywords)) * 100.0
+
     total_score = round(activity_score * 0.6 + topic_score * 0.4, 2)
-    return CandidateScore(handle, profile_url, activity_30d, active_days_30d, round(activity_score, 2), round(topic_score, 2), total_score, ' | '.join(titles[:5]))
+    return CandidateScore(
+        handle=handle,
+        profile_url=profile_url,
+        activity_30d=activity_30d,
+        active_days_30d=active_days_30d,
+        activity_score=round(activity_score, 2),
+        topic_score=round(topic_score, 2),
+        total_score=total_score,
+        evidence_basis='public_rss_observed_lower_bound',
+        recent_titles=' | '.join(titles[:5]),
+    )
