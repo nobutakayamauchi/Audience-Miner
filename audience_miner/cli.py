@@ -74,6 +74,7 @@ def main() -> int:
     rows.sort(key=lambda r: r.total_score, reverse=True)
     fields = [
         'handle', 'profile_url', 'activity_30d', 'active_days_30d',
+        'last_observed_post_at', 'days_since_last_post',
         'activity_score', 'topic_score', 'total_score', 'evidence_basis',
         'recent_titles',
     ]
@@ -87,9 +88,10 @@ def main() -> int:
         write_html_report(rows, args.html_out)
 
     for row in rows:
+        recency = '?' if row.days_since_last_post is None else f'{row.days_since_last_post}d'
         print(
             f'{row.total_score:6.2f} {row.handle:24} '
-            f'active_days30={row.active_days_30d:2d} posts30={row.activity_30d:2d}'
+            f'active_days30={row.active_days_30d:2d} posts30={row.activity_30d:2d} last={recency}'
         )
     print(f'Wrote {len(rows)} candidates to {args.out}')
     if args.html_out:
