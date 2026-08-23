@@ -6,22 +6,33 @@ from pathlib import Path
 from audience_miner.core import CandidateScore
 
 
+def _recency_label(row: CandidateScore) -> str:
+    if row.days_since_last_post is None:
+        return '観測なし'
+    if row.days_since_last_post == 0:
+        return '今日'
+    return f'{row.days_since_last_post}日前'
+
+
 def write_html_report(rows: list[CandidateScore], path: str) -> None:
     cards = []
     for index, row in enumerate(rows, start=1):
         titles = escape(row.recent_titles or 'No recent title evidence')
         handle_attr = escape(row.handle, quote=True)
+        recency = escape(_recency_label(row))
+        last_at = escape(row.last_observed_post_at or 'not observed')
         cards.append(f'''<article class="card" data-handle="{handle_attr}">
   <div class="rank">#{index}</div>
   <h2>{escape(row.handle)}</h2>
   <div class="score">{row.total_score:.2f}</div>
   <div class="status" aria-live="polite">未処理</div>
   <dl>
-    <div><dt>Observed active days / 30d</dt><dd>{row.active_days_30d}</dd></div>
-    <div><dt>Observed posts / 30d</dt><dd>{row.activity_30d}</dd></div>
-    <div><dt>Topic fit</dt><dd>{row.topic_score:.2f}</dd></div>
+    <div><dt>最終観測投稿</dt><dd>{recency}</dd></div>
+    <div><dt>30日内の観測活動日</dt><dd>{row.active_days_30d}</dd></div>
+    <div><dt>30日内の観測投稿数</dt><dd>{row.activity_30d}</dd></div>
+    <div><dt>ジャンル一致</dt><dd>{row.topic_score:.2f}</dd></div>
   </dl>
-  <p class="evidence">{escape(row.evidence_basis)}</p>
+  <p class="evidence">{escape(row.evidence_basis)} / last={last_at}</p>
   <p class="titles">{titles}</p>
   <a class="open" href="{escape(row.profile_url, quote=True)}" target="_blank" rel="noopener noreferrer">noteプロフィールを開く</a>
   <div class="review-actions">
