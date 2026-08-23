@@ -32,13 +32,10 @@ class _ProfileLinkParser(HTMLParser):
 
 
 def _profile_handle_from_href(href: str) -> str | None:
-    if href.startswith('/'):
-        path = href
-    else:
-        parsed = urlparse(href)
-        if parsed.netloc not in {'note.com', 'www.note.com'}:
-            return None
-        path = parsed.path
+    parsed = urlparse(href)
+    if parsed.netloc and parsed.netloc not in {'note.com', 'www.note.com'}:
+        return None
+    path = parsed.path
     parts = [part for part in path.split('/') if part]
     if len(parts) != 1:
         return None
