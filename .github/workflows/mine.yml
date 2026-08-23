@@ -1,0 +1,70 @@
+name: Mine note audience
+
+on:
+  workflow_dispatch:
+    inputs:
+      keywords:
+        description: 'Scoring keywords, comma-separated'
+        required: true
+        default: 'AI,生成AI,ChatGPT,GPTs,AI副業,note副業'
+        type: string
+      tags:
+        description: 'note hashtags, comma-separated'
+        required: true
+        default: 'AI副業,生成AI,ChatGPT'
+        type: string
+      max_candidates:
+        description: 'Maximum candidates'
+        required: true
+        default: '20'
+        type: choice
+        options:
+          - '10'
+          - '20'
+          - '30'
+          - '50'
+  pull_request:
+    paths:
+      - 'audience_miner/operator.py'
+      - 'scripts/operator_run.py'
+      - '.github/workflows/mine.yml'
+      - 'tests/test_operator.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audience-miner-operator-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      AUDIENCE_KEYWORDS: ${{ github.event_name == 'workflow_dispatch' && inputs.keywords || 'AI,生成AI,ChatGPT,GPTs,AI副業,note副業' }}
+      AUDIENCE_TAGS: ${{ github.event_name == 'workflow_dispatch' && inputs.tags || 'AI副業,生成AI,ChatGPT' }}
+      AUDIENCE_MAX_CANDIDATES: ${{ github.event_name == 'workflow_dispatch' && inputs.max_candidates || '6' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - name: Mine and build review report
+        run: python scripts/operator_run.py
+      - name: Verify bounded output
+        run: |
+          rows=$(($(wc -l < candidates.csv) - 1))
+          echo "OPERATOR_ROWS=$rows"
+          test "$rows" -ge 3
+          test -s candidates.html
+          test -s candidates.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audience-miner-operator-report
+          path: |
+            candidates.csv
+            candidates.html
+            candidates.md
+          if-no-files-found: error

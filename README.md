@@ -2,9 +2,9 @@
 
 Find and rank high-fit note creators using public evidence, while keeping platform actions bounded and human-confirmed.
 
-## V0
+## V0 — Reality-proven mining core
 
-Audience Miner can now:
+Audience Miner can:
 
 - discover authors exposed on public note hashtag pages (**V0 primary / Reality-proven**)
 - best-effort discover creators from note's public creator-search HTML; fail closed when results are client-rendered
@@ -19,7 +19,28 @@ Audience Miner can now:
 - output a mobile-friendly HTML review report with one-tap profile opening
 - locally mark candidates as `フォロー済み` / `除外` without automating the platform action
 
-## Quick run
+## V1 — GitHub operator run
+
+V1 adds a phone-friendly operator surface without adding note action automation.
+
+From GitHub:
+
+1. open **Actions**
+2. choose **Mine note audience**
+3. tap **Run workflow**
+4. enter comma-separated scoring keywords and note hashtags
+5. choose a bounded candidate limit: 10 / 20 / 30 / 50
+6. open the completed run summary for clickable candidate profiles, or download the generated report artifact
+
+The artifact contains:
+
+- `candidates.csv`
+- `candidates.html`
+- `candidates.md`
+
+Workflow inputs are passed to Python as environment values and then to the V0 CLI as an argument vector. They are not interpolated into a shell command.
+
+## Local CLI
 
 After installation you can use either `audience-miner` or `python -m audience_miner.cli`.
 
@@ -59,6 +80,6 @@ RSS may be truncated, so activity counts are lower-bound observations. They are 
 
 Discovery and ranking are the core product value. Platform actions are replaceable adapters.
 
-V0 does not include authenticated/private scraping, anti-bot bypass, bulk auto-follow, auto-like, or auto-DM. The HTML report opens the public profile for human review/action. Public RSS scoring is sequential and defaults to a 0.5-second delay between candidate requests.
+Audience Miner does not include authenticated/private scraping, anti-bot bypass, bulk auto-follow, auto-like, or auto-DM. The HTML/Markdown surfaces open the public profile for human review/action. Public RSS scoring is sequential and operator mode cannot lower the 0.5-second minimum request delay.
 
-See `docs/V0_SPEC.md` for the frozen scope, Reality finding that changed the provider priority, DA/Counter-DA findings, and the current Reality Gate.
+See `docs/V0_SPEC.md` for the accepted mining core and `docs/V1_OPERATOR_SPEC.md` for the bounded operator workflow.
