@@ -8,6 +8,8 @@ def test_report_contains_safe_profile_link_and_review_controls(tmp_path):
         profile_url='https://note.com/example',
         activity_30d=4,
         active_days_30d=3,
+        last_observed_post_at='2026-08-23T01:00:00+00:00',
+        days_since_last_post=0,
         activity_score=15.0,
         topic_score=50.0,
         total_score=29.0,
