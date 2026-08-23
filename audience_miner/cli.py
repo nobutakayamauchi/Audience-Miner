@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+import time
 
 from audience_miner.core import score_candidate
 from audience_miner.discovery import discover_handles, discover_hashtag_authors
@@ -17,12 +18,15 @@ def main() -> int:
     p.add_argument('--candidate', action='append', default=[], help='Explicit note handle/profile URL; repeatable')
     p.add_argument('--per-query', type=int, default=10, help='Requested public search results per query (1-50)')
     p.add_argument('--max-candidates', type=int, default=50, help='Hard cap per discovery provider (1-100)')
+    p.add_argument('--request-delay', type=float, default=0.5, help='Seconds between public RSS requests; default 0.5')
     p.add_argument('--out', default='candidates.csv', help='CSV output path')
     p.add_argument('--html-out', default='candidates.html', help='Mobile-friendly human review report path')
     args = p.parse_args()
 
     if not args.query and not args.tag and not args.candidate:
         p.error('provide at least one --query, --tag, or --candidate')
+    if args.request_delay < 0:
+        p.error('--request-delay must be >= 0')
 
     keywords = [x.strip() for x in args.keywords.split(',') if x.strip()]
     candidates = list(args.candidate)
@@ -59,7 +63,9 @@ def main() -> int:
             deduped.append(candidate)
 
     rows = []
-    for candidate in deduped:
+    for index, candidate in enumerate(deduped):
+        if index and args.request_delay:
+            time.sleep(args.request_delay)
         try:
             rows.append(score_candidate(candidate, keywords))
         except Exception as exc:
